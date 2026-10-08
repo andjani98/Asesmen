@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nilai Dirimu</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root{
+    --green:#2C5F2D; --green-dark:#173D1A; --mint:#7FB069; --cream:#F6F4EC;
+    --ink:#1B241C; --card:#FFFFFF; --line:#E3E2D6;
+    box-sizing:border-box;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --cream:#15180F; --ink:#ECE9DC; --card:#1E2417; --line:#333827;
+    }
+  }
+  *{box-sizing:border-box;}
+  html{scroll-padding-top:env(safe-area-inset-top,0px); height:100%;}
+  body{
+    height:100%; margin:0; background:var(--cream); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    display:flex; flex-direction:column; align-items:center;
+  }
+  .wrap{width:100%; max-width:480px; padding:20px 20px 40px; min-height:100%; display:flex; flex-direction:column; justify-content:center;}
+  header{padding:8px 0 18px;}
+  .eyebrow{font-size:13px; color:var(--green); font-weight:600;}
+  h1{font-size:22px; margin:4px 0 0; line-height:1.25;}
+  .progress{display:flex; gap:6px; margin:16px 0 22px;}
+  .dot{flex:1; height:5px; border-radius:3px; background:var(--line); transition:background .2s;}
+  .dot.done{background:var(--green);}
+  .dot.current{background:var(--mint);}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:18px; padding:22px 20px; flex:1; display:flex; flex-direction:column;}
+  .qnum{font-size:13px; color:#8A8A7A; margin-bottom:6px;}
+  .qtitle{font-size:19px; font-weight:700; line-height:1.3; margin:0 0 4px;}
+  .qhint{font-size:14px; color:#6B6B5E; margin:0 0 18px;}
+  .options{display:flex; flex-direction:column; gap:10px; margin-top:4px;}
+  .opt{
+    display:flex; align-items:center; gap:12px; width:100%; text-align:left;
+    border:1.5px solid var(--line); background:transparent; border-radius:14px;
+    padding:14px 14px; font-size:15px; color:var(--ink); cursor:pointer;
+    font-family:inherit; -webkit-tap-highlight-color:transparent;
+  }
+  .opt:active{transform:scale(0.98);}
+  .opt.sel{border-color:var(--green); background:rgba(44,95,45,0.08);}
+  .badge{
+    flex:0 0 30px; height:30px; border-radius:50%; background:var(--line); color:var(--ink);
+    display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px;
+  }
+  .opt.sel .badge{background:var(--green); color:#fff;}
+  .nav{display:flex; justify-content:space-between; margin-top:20px; gap:10px;}
+  .btn{
+    border:none; border-radius:12px; padding:13px 20px; font-size:15px; font-weight:600;
+    font-family:inherit; cursor:pointer; -webkit-tap-highlight-color:transparent;
+  }
+  .btn-ghost{background:transparent; color:#8A8A7A;}
+  .btn-primary{background:var(--green); color:#fff; flex:1;}
+  .btn-primary:disabled{background:var(--line); color:#999;}
+  textarea{
+    width:100%; border:1.5px solid var(--line); border-radius:14px; padding:14px;
+    font-family:inherit; font-size:15px; resize:none; min-height:110px; color:var(--ink); background:transparent;
+  }
+  .result{display:flex; flex-direction:column; align-items:center; text-align:center; flex:1; justify-content:center;}
+  .score{font-size:56px; font-weight:800; color:var(--green); margin:6px 0 0;}
+  .score-label{font-size:14px; color:#6B6B5E;}
+  .sum-row{display:flex; justify-content:space-between; width:100%; padding:10px 0; border-bottom:1px solid var(--line); font-size:14px;}
+  .sum-row b{color:var(--ink);}
+  .tag{display:inline-block; background:rgba(44,95,45,0.1); color:var(--green); font-size:13px; font-weight:600; padding:4px 12px; border-radius:20px; margin-top:10px;}
+
+  /* QR screen */
+  .qr-panel{background:var(--card); border:1px solid var(--line); border-radius:24px; padding:40px 32px; text-align:center;}
+  #qr{display:inline-flex; padding:16px; background:#fff; border-radius:18px; border:1px solid var(--line);}
+  .qr-hint{font-size:15px; color:#6B6B5E; margin:22px 0 0; line-height:1.5;}
+  .link-box{margin-top:18px; font-size:12px; color:var(--green); word-break:break-all; background:rgba(44,95,45,0.08); padding:10px 14px; border-radius:10px;}
+  .switch{margin-top:18px; background:none; border:none; color:#8A8A7A; font-size:13px; text-decoration:underline; cursor:pointer; font-family:inherit;}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+
+<script>
+const CRITERIA = [
+  { key:"isi", title:"Isi refleksiku", hint:"Tadi aku cerita apa yang dipelajari, dirasakan, dan kesulitannya",
+    opts:[
+      {v:4, l:"Lengkap, ada contoh nyata"},
+      {v:3, l:"Lengkap, tapi tanpa contoh"},
+      {v:2, l:"Cuma sebagian yang aku sebut"},
+      {v:1, l:"Belum nyambung ke topik"},
+    ]},
+  { key:"sampai", title:"Cara aku menyampaikan", hint:"Suara, kelancaran, kontak mata",
+    opts:[
+      {v:4, l:"Lancar, jelas, kontak mata oke"},
+      {v:3, l:"Lancar & jelas, kontak mata kurang"},
+      {v:2, l:"Sering kebata-bata"},
+      {v:1, l:"Susah dipahami"},
+    ]},
+  { key:"rencana", title:"Rencana perbaikanku", hint:"Langkah yang aku sebut tadi",
+    opts:[
+      {v:4, l:"Jelas dan bisa dilakukan"},
+      {v:3, l:"Jelas tapi kurang detail"},
+      {v:2, l:"Masih kurang jelas"},
+      {v:1, l:"Belum punya rencana"},
+    ]},
+  { key:"jujur", title:"Kejujuranku", hint:"Soal mengakui kesulitan",
+    opts:[
+      {v:4, l:"Berani akui semua kesulitan"},
+      {v:3, l:"Akui sebagian besar"},
+      {v:2, l:"Nutupin sebagian"},
+      {v:1, l:"Belum jujur"},
+    ]},
+  { key:"pede", title:"Rasa percaya diriku", hint:"Pas maju tadi",
+    opts:[
+      {v:4, l:"Berani maju, santai"},
+      {v:3, l:"Berani maju, agak deg-degan"},
+      {v:2, l:"Maju setelah didorong"},
+      {v:1, l:"Belum berani maju"},
+    ]},
+];
+
+let step = 0;
+const answers = {};
+let reflection = "";
+
+// ---- mode: "qr" (ditunjukkan ke kelas) atau "fill" (diisi siswa) ----
+function getMode(){
+  const p = new URLSearchParams(window.location.search);
+  return p.get("s") === "1" ? "fill" : "qr";
+}
+function fillUrl(){
+  const u = new URL(window.location.href);
+  u.searchParams.set("s", "1");
+  return u.toString();
+}
+function qrUrl(){
+  const u = new URL(window.location.href);
+  u.searchParams.delete("s");
+  return u.toString();
+}
+
+function renderQR(){
+  const app = document.getElementById("app");
+  app.innerHTML = `
+    <div class="qr-panel">
+      <div class="eyebrow">NILAI DIRI SENDIRI</div>
+      <h1>Scan dulu sebelum pulang 📱</h1>
+      <div id="qr"></div>
+      <p class="qr-hint">Buka kamera HP kamu, arahkan ke kode ini, lalu ketuk link yang muncul.</p>
+      <div class="link-box" id="urlText"></div>
+    </div>`;
+  const target = fillUrl();
+  document.getElementById("urlText").textContent = target;
+  new QRCode(document.getElementById("qr"), {
+    text: target, width: 220, height: 220,
+    colorDark: "#1B241C", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.M
+  });
+}
+
+function render(){
+  if (getMode() === "qr"){ renderQR(); return; }
+
+  const app = document.getElementById("app");
+
+  if (step < CRITERIA.length){
+    const q = CRITERIA[step];
+    const chosen = answers[q.key];
+    app.innerHTML = `
+      <header>
+        <div class="eyebrow">NILAI DIRIMU</div>
+        <h1>Jujur aja, nggak dibandingin sama temen kok.</h1>
+      </header>
+      <div class="progress">${CRITERIA.map((_,i)=>`<div class="dot ${i<step?'done':i===step?'current':''}"></div>`).join('')}</div>
+      <div class="card">
+        <div class="qnum">Pertanyaan ${step+1} dari ${CRITERIA.length}</div>
+        <p class="qtitle">${q.title}</p>
+        <p class="qhint">${q.hint}</p>
+        <div class="options">
+          ${q.opts.map(o=>`
+            <button class="opt ${chosen===o.v?'sel':''}" onclick="choose('${q.key}', ${o.v})">
+              <span class="badge">${o.v}</span><span>${o.l}</span>
+            </button>`).join('')}
+        </div>
+        <div class="nav">
+          <button class="btn btn-ghost" onclick="back()" ${step===0?'style="visibility:hidden"':''}>Kembali</button>
+          <button class="btn btn-primary" onclick="next()" ${chosen?'':'disabled'}>Lanjut</button>
+        </div>
+      </div>`;
+    return;
+  }
+
+  if (step === CRITERIA.length){
+    app.innerHTML = `
+      <header>
+        <div class="eyebrow">TERAKHIR</div>
+        <h1>Satu hal yang mau kamu perbaiki?</h1>
+      </header>
+      <div class="progress">${CRITERIA.map(()=>`<div class="dot done"></div>`).join('')}</div>
+      <div class="card">
+        <p class="qhint">Boleh singkat aja, nggak perlu panjang.</p>
+        <textarea id="refl" placeholder="Misalnya: aku mau lebih pede pas maju...">${reflection}</textarea>
+        <div class="nav">
+          <button class="btn btn-ghost" onclick="back()">Kembali</button>
+          <button class="btn btn-primary" onclick="finish()">Lihat hasil</button>
+        </div>
+      </div>`;
+    return;
+  }
+
+  const sum = Object.values(answers).reduce((a,b)=>a+b,0);
+  const max = CRITERIA.length*4;
+  const nilai = Math.round((sum/max)*100);
+  app.innerHTML = `
+    <header>
+      <div class="eyebrow">SELESAI</div>
+      <h1>Ini hasil penilaian dirimu</h1>
+    </header>
+    <div class="card result">
+      <div class="score-label">Skor kamu</div>
+      <div class="score">${sum}<span style="font-size:24px;color:#8A8A7A;">/${max}</span></div>
+      <div class="tag">≈ nilai ${nilai}</div>
+      <div style="width:100%; margin-top:26px; text-align:left;">
+        ${CRITERIA.map(c=>`<div class="sum-row"><span>${c.title}</span><b>${answers[c.key]}</b></div>`).join('')}
+      </div>
+      ${reflection?`<p style="margin-top:18px; font-size:14px; color:#6B6B5E; text-align:left; width:100%;"><b style="color:var(--ink);">Yang mau diperbaiki:</b><br>${reflection}</p>`:''}
+      <p style="margin-top:22px; font-size:13px; color:#8A8A7A;">Tunjukkan layar ini ke gurumu ya 🙂</p>
+      <button class="btn btn-ghost" style="margin-top:10px;" onclick="restart()">Isi ulang</button>
+    </div>`;
+}
+
+function choose(key, val){ answers[key] = val; render(); }
+function next(){ if(answers[CRITERIA[step].key]) step++; render(); window.scrollTo(0,0); }
+function back(){ if(step>0) step--; render(); window.scrollTo(0,0); }
+function finish(){ reflection = document.getElementById('refl').value.trim(); step++; render(); window.scrollTo(0,0); }
+function restart(){ step=0; for(const k in answers) delete answers[k]; reflection=""; render(); window.scrollTo(0,0); }
+
+render();
+</script>
+</body>
+</html>
